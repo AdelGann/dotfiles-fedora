@@ -6,11 +6,11 @@
 #  ██║  ██║██║╚██████╗███████╗    ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
 #  ╚═╝  ╚═╝╚═╝ ╚═════╝╚══════╝    ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
 #
-#	Author	-	gh0stzk
+#	Author	-	gh0stzk (Adapted for Fedora)
 #	Repo	-	https://github.com/gh0stzk/dotfiles
 #	Last updated	-	24.03.2025 08:58:16
 #
-#	RiceInstaller - Script to install my dotfiles
+#	RiceInstaller - Script to install my dotfiles (Fedora Version)
 #
 # Copyright (C) 2021-2025 gh0stzk <z0mbi3.zk@protonmail.com>
 # Licensed under GPL-3.0 license
@@ -79,19 +79,38 @@ initial_checks() {
         log_error "No internet connection detected."
         exit 1
     fi
+
+    # Verificar que estamos en Fedora
+    if ! grep -q "Fedora" /etc/os-release 2>/dev/null; then
+        log_error "This script is designed for Fedora. Detected: $(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)"
+        exit 1
+    fi
 }
 
-# Internal verification function
+# Internal verification function for Fedora
 is_installed() {
-    pacman -Qq "$1" >/dev/null 2>&1
+    dnf list installed "$1" >/dev/null 2>&1
 }
 
-is_reflector() {
-    if ! command -v reflector >/dev/null 2>&1; then
-        # Mensaje de instalación
-        printf "\t%b\n" "${BLD}${CBL}Installing reflector to get the best mirrors...${CNC}"
-        sudo pacman -Syy 2>&1 | tee -a "$ERROR_LOG" >/dev/null
-        sudo pacman -S reflector --noconfirm 2>&1 | tee -a "$ERROR_LOG" >/dev/null
+# Fedora-specific package manager functions
+update_system() {
+    printf "%b\n" "${BLD}${CYE}Updating system packages...${CNC}"
+    if sudo dnf update -y >> "$ERROR_LOG" 2>&1; then
+        printf "%b\n" "${BLD}${CGR}System updated successfully!${CNC}"
+    else
+        log_error "Failed to update system"
+        return 1
+    fi
+}
+
+install_dnf_group() {
+    group_name="$1"
+    printf "%b\n" "${BLD}${CYE}Installing group: ${CBL}${group_name}${CNC}"
+    if sudo dnf groupinstall -y "$group_name" >> "$ERROR_LOG" 2>&1; then
+        printf "%b\n" "${BLD}${CGR}Group ${CBL}${group_name}${CGR} installed successfully!${CNC}"
+    else
+        log_error "Failed to install group: $group_name"
+        return 1
     fi
 }
 
@@ -101,7 +120,6 @@ welcome() {
 
     printf "%b" "${BLD}${CGR}This script will install my dotfiles and this is what it will do:${CNC}
 
-  ${BLD}${CGR}[${CYE}i${CGR}]${CNC} 2 Repositories will be installed. ${CBL}gh0stzk-dotfiles${CNC} and ${CBL}Chaotic-Aur${CNC}
   ${BLD}${CGR}[${CYE}i${CGR}]${CNC} Check necessary dependencies and install them
   ${BLD}${CGR}[${CYE}i${CGR}]${CNC} Download my dotfiles in ${HOME}/dotfiles
   ${BLD}${CGR}[${CYE}i${CGR}]${CNC} Backup of possible existing configurations (bspwm, polybar, etc...)
@@ -129,111 +147,19 @@ ${BLD}${CGR}[${CRE}!${CGR}]${CNC} ${BLD}${CRE}This script does NOT have the pote
     done
 }
 
-add_gh0stzk_repo() {
-    clear
-    logo "Add gh0stzk custom repo"
-    repo_name="gh0stzk-dotfiles"
-    sleep 2
-
-    # Mensaje de instalación del repositorio
-    printf "%b\n" "${BLD}${CYE}Installing ${CBL}${repo_name}${CYE} repository...${CNC}"
-
-    # Verificar si ya existe la sección en pacman.conf
-    if ! grep -q "\[${repo_name}\]" /etc/pacman.conf; then
-        # Agregar repo al final del archivo
-        if printf "\n[%s]\nSigLevel = Optional TrustAll\nServer = http://gh0stzk.github.io/pkgs/x86_64\n" "$repo_name" \
-           | sudo tee -a /etc/pacman.conf >/dev/null 2>> "$ERROR_LOG"; then
-            printf "\n%b\n" "${BLD}${CYE}${repo_name} ${CGR}repository added successfully!${CNC}"
-
-            # Actualizar bases de datos
-            if ! sudo pacman -Syy 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-                log_error "Database update failed"
-                return 1
-            fi
-        else
-            log_error "Error adding repository - check permissions"
-            return 1
-        fi
-    else
-        printf "\n%b\n" "${BLD}${CYE}The repository already exists and is configured${CNC}"
-        sleep 3
-        return 0
-    fi
-}
-
-add_chaotic_repo() {
-    clear
-    logo "Add chaotic-aur repository"
-    repo_name="chaotic-aur"
-    key_id="3056513887B78AEB"
-    sleep 2
-
-    # Mensaje de configuración del repositorio
-    printf "%b\n" "${BLD}${CYE}Installing ${CBL}${repo_name}${CYE} repository...${CNC}"
-
-    # Verificar si ya existe la sección en pacman.conf
-    if grep -q "\[${repo_name}\]" /etc/pacman.conf; then
-        printf "%b\n" "\n${BLD}${CYE}Repository already exists in pacman.conf${CNC}"
-        sleep 3
-        return 0
-    fi
-
-    # Gestión de clave GPG
-    if ! pacman-key -l | grep -q "$key_id"; then
-        printf "%b\n" "${BLD}${CYE}Adding GPG key...${CNC}"
-        if ! sudo pacman-key --recv-key "$key_id" --keyserver keyserver.ubuntu.com 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-            log_error "Failed to receive GPG key"
-            return 1
-        fi
-
-        printf "%b\n" "${BLD}${CYE}Signing key locally...${CNC}"
-        if ! sudo pacman-key --lsign-key "$key_id" 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-            log_error "Failed to sign GPG key"
-            return 1
-        fi
-    else
-        printf "\n%b\n" "${BLD}${CYE}GPG key already exists in keyring${CNC}"
-    fi
-
-    # Instalación de paquetes requeridos
-    chaotic_pkgs="chaotic-keyring chaotic-mirrorlist"
-    for pkg in $chaotic_pkgs; do
-        if ! pacman -Qq "$pkg" >/dev/null 2>&1; then
-            printf "%b\n" "${BLD}${CYE}Installing ${CBL}${pkg}${CNC}"
-            if ! sudo pacman -U --noconfirm "https://cdn-mirror.chaotic.cx/chaotic-aur/${pkg}.pkg.tar.zst" 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-                log_error "Failed to install ${pkg}"
-                return 1
-            fi
-        else
-            printf "%b\n" "${BLD}${CYE}${pkg} is already installed${CNC}"
-        fi
-    done
-
-    # Agregar configuración del repositorio
-    printf "\n%b\n" "${BLD}${CYE}Adding repository to pacman.conf...${CNC}"
-    if ! printf "\n[%s]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n" "$repo_name" \
-       | sudo tee -a /etc/pacman.conf >/dev/null 2>> "$ERROR_LOG"; then
-        log_error "Failed to add repository configuration"
-        return 1
-    fi
-
-    printf "%b\n" "\n${BLD}${CBL}${repo_name} ${CGR}Repository configured successfully!${CNC}"
-    sleep 3
-}
-
 install_dependencies() {
     clear
-    logo "Installing needed packages from official repositories..."
+    logo "Installing needed packages from Fedora repositories..."
     sleep 2
 
-    # Ensure reflector is installed and update mirrorlist
-    is_reflector
-    printf "%b\n\n" "${BLD}${CGR}Getting the 5 best and fastest mirrors${CNC}"
-    sudo reflector --verbose --age 12 --fastest 10 --score 10 --protocol https --latest 5 --sort rate --save /etc/pacman.d/mirrorlist
-    sudo pacman -Syy
+    # Update system first
+    update_system
 
-    # List of dependencies
-    dependencies="alacritty base-devel bat brightnessctl bspwm clipcat dunst eza feh fzf thunar tumbler gvfs-mtp firefox geany git imagemagick jq jgmenu kitty libwebp maim mpc mpd mpv neovim ncmpcpp npm pamixer pacman-contrib papirus-icon-theme picom playerctl polybar lxsession-gtk3 python-gobject redshift rofi rustup sxhkd tmux xclip xdg-user-dirs xdo xdotool xsettingsd xorg-xdpyinfo xorg-xkill xorg-xprop xorg-xrandr xorg-xsetroot xorg-xwininfo yazi zsh zsh-autosuggestions zsh-history-substring-search zsh-syntax-highlighting ttf-inconsolata ttf-jetbrains-mono ttf-jetbrains-mono-nerd ttf-terminus-nerd ttf-ubuntu-mono-nerd webp-pixbuf-loader"
+    # Install development tools group
+    install_dnf_group "Development Tools"
+
+    # List of dependencies for Fedora
+    dependencies="alacritty bat brightnessctl bspwm clipcat dunst eza feh fzf thunar tumbler gvfs-mtp firefox geany git ImageMagick jq jgmenu kitty libwebp maim mpc mpd mpv neovim ncmpcpp npm pamixer papirus-icon-theme picom playerctl polybar lxsession-gtk3 python3-gobject redshift rofi rustup sxhkd tmux xclip xdg-user-dirs xdo xdotool xsettingsd xorg-xdpyinfo xorg-xkill xorg-xprop xorg-xrandr xorg-xsetroot xorg-xwininfo yazi zsh zsh-autosuggestions zsh-history-substring-search zsh-syntax-highlighting google-noto-sans-fonts google-noto-mono-fonts liberation-fonts webp-pixbuf-loader"
 
     printf "\n%b\n\n" "${BLD}${CBL}Checking for required packages...${CNC}"
     sleep 2
@@ -254,7 +180,7 @@ install_dependencies() {
         count=$(printf "%s" "$missing_pkgs" | wc -w)
         printf "\n%b\n\n" "${BLD}${CYE}Installing $count packages, please wait...${CNC}"
 
-        if sudo pacman -S --noconfirm $missing_pkgs 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
+        if sudo dnf install -y $missing_pkgs >> "$ERROR_LOG" 2>&1; then
             # Verify complete installation
             failed_pkgs=""
             for pkg in $missing_pkgs; do
@@ -284,172 +210,48 @@ install_dependencies() {
     sleep 3
 }
 
-install_gh0stzk_dependencies() {
-    clear
-    logo "Installing needed packages from gh0stzk repository..."
-    sleep 2
-
-    # List of dependencies
-    gh0stzk_dependencies="gh0stzk-gtk-themes gh0stzk-cursor-qogirr gh0stzk-icons-beautyline gh0stzk-icons-candy gh0stzk-icons-catppuccin-mocha gh0stzk-icons-dracula gh0stzk-icons-glassy gh0stzk-icons-gruvbox-plus-dark gh0stzk-icons-hack gh0stzk-icons-luv gh0stzk-icons-sweet-rainbow gh0stzk-icons-tokyo-night gh0stzk-icons-vimix-white gh0stzk-icons-zafiro gh0stzk-icons-zafiro-purple"
-
-    printf "%b\n\n" "${BLD}${CBL}Checking for required packages...${CNC}"
-    sleep 2
-
-    # Detect missing packages
-    missing_gh0stzk_pkgs=""
-    for pkg in $gh0stzk_dependencies; do
-        if ! is_installed "$pkg"; then
-            missing_gh0stzk_pkgs="$missing_gh0stzk_pkgs $pkg"
-            printf "%b\n" " ${BLD}${CYE}$pkg ${CRE}not installed${CNC}"
-        else
-            printf "%b\n" "${BLD}${CGR}$pkg ${CBL}already installed${CNC}"
-        fi
-    done
-
-    # Batch installation if needed
-    if [ -n "$(printf "%s" "$missing_gh0stzk_pkgs" | tr -s ' ')" ]; then
-        count=$(printf "%s" "$missing_gh0stzk_pkgs" | wc -w)
-        printf "\n%b\n\n" "${BLD}${CYE}Installing $count packages, please wait...${CNC}"
-
-        if sudo pacman -S --noconfirm $missing_gh0stzk_pkgs 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-            # Verify complete installation
-            failed_gh0stzk_pkgs=""
-            for pkg in $missing_gh0stzk_pkgs; do
-                if ! is_installed "$pkg"; then
-                    failed_gh0stzk_pkgs="$failed_gh0stzk_pkgs $pkg"
-                    log_error "Failed to install: $pkg"
-                fi
-            done
-
-            # Show final results
-            if [ -z "$(printf "%s" "$failed_gh0stzk_pkgs" | tr -s ' ')" ]; then
-                printf "%b\n\n" "${BLD}${CGR}All packages installed successfully!${CNC}"
-            else
-                fail_count=$(printf "%s" "$failed_gh0stzk_pkgs" | wc -w)
-                printf "%b\n" "${BLD}${CRE}Failed to install $fail_count packages:${CNC}"
-                printf "%b\n\n" "  ${BLD}${CYE}$(printf "%s" "$failed_gh0stzk_pkgs")${CNC}"
-            fi
-        else
-            log_error "Critical error during batch installation"
-            printf "%b\n" "${BLD}${CRE}Installation failed! Check log for details${CNC}"
-            return 1
-        fi
-    else
-        printf "\n%b\n" "${BLD}${CGR}All dependencies are already installed!${CNC}"
-    fi
-
-    sleep 3
-}
-
-install_chaotic_dependencies() {
-    clear
-    logo "Installing needed packages from chaotic repository..."
-    sleep 2
-
-    # List of dependencies
-    chaotic_dependencies="paru eww-git i3lock-color simple-mtpfs fzf-tab-git"
-
-    printf "%b\n\n" "${BLD}${CBL}Checking for required packages...${CNC}"
-    sleep 2
-
-    # Detect missing packages
-    missing_chaotic_pkgs=""
-    for pkg in $chaotic_dependencies; do
-        if ! is_installed "$pkg"; then
-            missing_chaotic_pkgs="$missing_chaotic_pkgs $pkg"
-            printf "%b\n" " ${BLD}${CYE}$pkg ${CRE}not installed${CNC}"
-        else
-            printf "%b\n" "${BLD}${CGR}$pkg ${CBL}already installed${CNC}"
-        fi
-    done
-
-    # Batch installation if needed
-    if [ -n "$(printf "%s" "$missing_chaotic_pkgs" | tr -s ' ')" ]; then
-        count=$(printf "%s" "$missing_chaotic_pkgs" | wc -w)
-        printf "\n%b\n\n" "${BLD}${CYE}Installing $count packages, please wait...${CNC}"
-
-        if sudo pacman -S --noconfirm $missing_chaotic_pkgs 2>&1 | tee -a "$ERROR_LOG" >/dev/null; then
-            # Verify complete installation
-            failed_chaotic_pkgs=""
-            for pkg in $missing_chaotic_pkgs; do
-                if ! is_installed "$pkg"; then
-                    failed_chaotic_pkgs="$failed_chaotic_pkgs $pkg"
-                    log_error "Failed to install: $pkg"
-                fi
-            done
-
-            # Show final results
-            if [ -z "$(printf "%s" "$failed_chaotic_pkgs" | tr -s ' ')" ]; then
-                printf "%b\n\n" "${BLD}${CGR}All packages installed successfully!${CNC}"
-            else
-                fail_count=$(printf "%s" "$failed_chaotic_pkgs" | wc -w)
-                printf "%b\n" "${BLD}${CRE}Failed to install $fail_count packages:${CNC}"
-                printf "%b\n\n" "  ${BLD}${CYE}$(printf "%s" "$failed_chaotic_pkgs")${CNC}"
-            fi
-        else
-            log_error "Critical error during batch installation"
-            printf "%b\n" "${BLD}${CRE}Installation failed! Check log for details${CNC}"
-            return 1
-        fi
-    else
-        printf "\n%b\n" "${BLD}${CGR}All dependencies are already installed!${CNC}"
-    fi
-
-    sleep 3
-}
-
 install_aur_dependencies() {
     clear
-    logo "Installing AUR dependencies..."
+    logo "Installing AUR dependencies via COPR..."
     sleep 2
 
-    # AUR Package List
-    aur_apps="xqp xwinwrap-0.9-bin"
+    # Enable COPR repository for additional packages
+    printf "%b\n" "${BLD}${CYE}Enabling COPR repository for additional packages...${CNC}"
+    
+    # Install copr-cli if not available
+    if ! command -v copr-cli >/dev/null 2>&1; then
+        sudo dnf install -y copr-cli >> "$ERROR_LOG" 2>&1
+    fi
 
-    printf "%b\n\n" "${BLD}${CBL}Checking for required AUR packages...${CNC}"
-    sleep 2
-
-    # Detect missing AUR packages
-    missing_aur=""
-    for pkg in $aur_apps; do
-        if ! is_installed "$pkg"; then
-            missing_aur="$missing_aur $pkg"
-            printf "%b\n" " ${BLD}${CYE}$pkg ${CRE}not installed${CNC}"
+    # Enable COPR repositories for additional packages
+    copr_repos="atim/eww-git atim/fzf-tab-git"
+    
+    for repo in $copr_repos; do
+        printf "%b\n" "${BLD}${CYE}Enabling COPR repository: ${CBL}${repo}${CNC}"
+        if sudo dnf copr enable -y "$repo" >> "$ERROR_LOG" 2>&1; then
+            printf "%b\n" "${BLD}${CGR}COPR repository ${CBL}${repo}${CGR} enabled successfully!${CNC}"
         else
-            printf "%b\n" "${BLD}${CGR}$pkg ${CBL}already installed${CNC}"
+            log_error "Failed to enable COPR repository: $repo"
         fi
     done
 
-    # Batch AUR installation if needed
-    if [ -n "$(printf "%s" "$missing_aur" | tr -s ' ')" ]; then
-        count=$(printf "%s" "$missing_aur" | wc -w)
-        printf "\n%b\n\n" "${BLD}${CYE}Installing $count AUR packages, please wait...${CNC}"
-
-        aur_failed=""
-        for pkg in $missing_aur; do
-            printf "%b\n" "${BLD}${CBL}Processing: ${pkg}${CNC}"
-
-            if paru -S --skipreview --noconfirm "$pkg" >> "$ERROR_LOG" 2>&1; then
-                printf "%b\n" "  ${BLD}${CGR}Successfully installed!${CNC}"
+    # Install additional packages from COPR
+    additional_pkgs="eww-git fzf-tab-git"
+    
+    printf "%b\n\n" "${BLD}${CBL}Installing additional packages from COPR...${CNC}"
+    
+    for pkg in $additional_pkgs; do
+        if ! is_installed "$pkg"; then
+            printf "%b\n" "${BLD}${CYE}Installing: ${CBL}${pkg}${CNC}"
+            if sudo dnf install -y "$pkg" >> "$ERROR_LOG" 2>&1; then
+                printf "%b\n" "${BLD}${CGR}${pkg} installed successfully!${CNC}"
             else
-                log_error "AUR package installation failed: $pkg"
-                aur_failed="$aur_failed $pkg"
-                printf "%b\n" "  ${BLD}${CRE}Installation failed!${CNC}"
+                log_error "Failed to install: $pkg"
             fi
-            sleep 0.5
-        done
-
-        # Show final summary
-        if [ -n "$(printf "%s" "$aur_failed" | tr -s ' ')" ]; then
-            fail_count=$(printf "%s" "$aur_failed" | wc -w)
-            printf "%b\n" "\n${BLD}${CRE}Failed $fail_count/$count AUR packages:${CNC}"
-            printf "%b\n\n" "${BLD}${CYE}$(printf "%s" "$aur_failed")${CNC}"
         else
-            printf "\n%b\n\n" "${BLD}${CGR}All AUR packages installed successfully!${CNC}"
+            printf "%b\n" "${BLD}${CGR}${pkg} already installed${CNC}"
         fi
-    else
-        printf "\n%b\n\n" "${BLD}${CGR}All AUR dependencies are already installed!${CNC}"
-    fi
+    done
 
     sleep 3
 }
@@ -544,7 +346,7 @@ backup_existing_config() {
         fi
     }
 
-    config_folders="bspwm alacritty clipcat picom rofi eww sxhkd dunst kitty polybar geany gtk-3.0 ncmpcpp yazi tmux zsh mpd paru"
+    config_folders="bspwm alacritty clipcat picom rofi eww sxhkd dunst kitty polybar geany gtk-3.0 ncmpcpp yazi tmux zsh mpd"
 
     for folder in $config_folders; do
         backup_item d "$HOME/.config/$folder" "$folder"
@@ -696,17 +498,6 @@ install_dotfiles() {
         fi
     fi
 
-    # Copying polybar-update.hook
-    if [ ! -d /etc/pacman.d/hooks ]; then
-        sudo mkdir -p /etc/pacman.d/hooks
-    fi
-
-    if sudo cp "$HOME/dotfiles/misc/polybar-update.hook" /etc/pacman.d/hooks; then
-        printf "%s%sPacman hook copied successfully!%s\n" "$BLD" "$CGR" "$CNC"
-    else
-        log_error "Failed to copy pacman hook :("
-    fi
-
     printf "\n%s%sDotfiles installed successfully!%s\n" "$BLD" "$CGR" "$CNC"
     sleep 3
 }
@@ -735,15 +526,6 @@ configure_services() {
     else
         log_error "Failed to enable user MPD service"
         printf "%b\n\n" "${BLD}${CRE}Failed to activate user MPD service${CNC}"
-    fi
-
-    # User-level ArchUpdates
-    printf "%b\n" "${BLD}${CYE}Enabling user ArchUpdates service...${CNC}"
-    if systemctl --user enable --now ArchUpdates.timer >> "$ERROR_LOG" 2>&1; then
-        printf "%b\n\n" "${BLD}${CGR}User ArchUpdates service activated successfully${CNC}"
-    else
-        log_error "Failed to enable user ArchUpdates service"
-        printf "%b\n\n" "${BLD}${CRE}Failed to activate user ArchUpdates service${CNC}"
     fi
 
     # Virtual Machine Detection
@@ -836,15 +618,9 @@ final_prompt() {
 # --- Main run --- #
 initial_checks
 welcome
-add_gh0stzk_repo
-add_chaotic_repo
-
 install_dependencies
-install_gh0stzk_dependencies
-install_chaotic_dependencies
 install_aur_dependencies
 clone_dotfiles
-
 backup_existing_config
 install_dotfiles
 configure_services
