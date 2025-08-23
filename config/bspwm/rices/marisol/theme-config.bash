@@ -39,7 +39,7 @@ FOCUSED_BC="#bd93f9"	# Focused border color
 
 # Terminal font & size
 term_font_size="10"
-term_font_name="JetBrainsMono Nerd Font"
+term_font_name="FiraCode Nerd Font Propo"
 
 # Picom options
 P_FADE="true"			# Fade true|false
@@ -103,7 +103,7 @@ geany_theme="z0mbi3-Dracula"
 # - CustomImage	(Sets a specific image as wallpaper)
 # - CustomAnimated (Set an animated wallpaper. "mp4, mkv, gif")
 # - Slideshow (Change randomly every 15 minutes your wallpaper from Walls rice directory)
-ENGINE="Theme"
-CUSTOM_DIR="/path/to/dir"
+ENGINE="CustomDir"
+CUSTOM_DIR="/home/adelg/Documentos/dotfiles/dotfile/background/wallpapers"
 CUSTOM_WALL="/path/to/image"
 CUSTOM_ANIMATED="$HOME/.config/bspwm/src/assets/animated_wall.mp4"

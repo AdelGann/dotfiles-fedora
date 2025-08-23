@@ -29,13 +29,13 @@ accent_color="#2a2740"
 arch_icon="#0f94d2"
 
 # Bspwm options
-BORDER_WIDTH="0"		# Bspwm border
+BORDER_WIDTH="1"		# Bspwm border
 TOP_PADDING="1"
 BOTTOM_PADDING="53"
 LEFT_PADDING="1"
 RIGHT_PADDING="1"
-NORMAL_BC="#9bced7"		# Normal border color
-FOCUSED_BC="#c3a5e6"	# Focused border color
+NORMAL_BC="#3D3846"		# Normal border color
+FOCUSED_BC="#C0BFBC"	# Focused border color
 
 # Terminal font & size
 term_font_size="10"
@@ -103,7 +103,7 @@ geany_theme="z0mbi3-RosePineMoon"
 # - CustomImage	(Sets a specific image as wallpaper)
 # - CustomAnimated (Set an animated wallpaper. "mp4, mkv, gif")
 # - Slideshow (Change randomly every 15 minutes your wallpaper from Walls rice directory)
-ENGINE="Theme"
-CUSTOM_DIR="/path/to/dir"
-CUSTOM_WALL="/path/to/image"
+ENGINE="CustomImage"
+CUSTOM_DIR="/home/adelg/Documentos/dotfiles/dotfile/background/wallpapers"
+CUSTOM_WALL="/home/adelg/Documentos/dotfiles/dotfile/background/wallpapers/windows-black.jpg"
 CUSTOM_ANIMATED="$HOME/.config/bspwm/src/assets/animated_wall.mp4"

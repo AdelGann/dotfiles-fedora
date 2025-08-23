@@ -247,7 +247,7 @@ files = [
 	{ name = ".prettierrc.yml", text = "", fg = "#4285f4" },
 	{ name = ".pylintrc", text = "", fg = "#6d8086" },
 	{ name = ".settings.json", text = "", fg = "#854cc7" },
-	{ name = ".SRCINFO", text = "󰣇", fg = "#0f94d2" },
+	{ name = ".SRCINFO", text = "󰣛", fg = "#0f94d2" },
 	{ name = ".vimrc", text = "", fg = "#019833" },
 	{ name = ".Xauthority", text = "", fg = "#e54d18" },
 	{ name = ".xinitrc", text = "", fg = "#e54d18" },
