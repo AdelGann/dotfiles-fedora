@@ -1,5 +1,5 @@
 font_family FiraCode Nerd Font Propo
-font_size 10.5
+font_size 14
 
 cursor_shape block
 cursor_stop_blinking_after 0
@@ -20,6 +20,6 @@ tab_bar_style powerline
 
 
 # BEGIN_KITTY_THEME
-# Yael
+# Z0mbi3
 include current-theme.conf
 # END_KITTY_THEME
