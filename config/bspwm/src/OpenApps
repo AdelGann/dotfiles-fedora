@@ -67,7 +67,7 @@ case "$1" in
   ;;
   # Apps
 --filemanager)
-  nautilus
+  nemo
   ;;
 --browser)
   xdg-open http://google.com/

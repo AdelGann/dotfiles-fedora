@@ -10,10 +10,11 @@
 #   └┘ ┴ ┴┴└─└─┘
 export VISUAL="${EDITOR}"
 export EDITOR='geany'
-export BROWSER='firefox'
+export BROWSER='chromium'
 export HISTORY_IGNORE="(ls|cd|pwd|exit|sudo reboot|history|cd -|cd ..)"
 export SUDO_PROMPT="Deploying root access for %u. Password pls: "
 export BAT_THEME="base16"
+export PATH="$HOME/.cargo/bin:$PATH"
 
 if [ -d "$HOME/.local/bin" ] ;
   then PATH="$HOME/.local/bin:$PATH"
@@ -108,15 +109,15 @@ function dir_icon {
   fi
 }
 
-PS1='%B%F{blue}%f%b  %B%F{magenta}%n%f%b $(dir_icon)  %B%F{red}%~%f%b${vcs_info_msg_0_} %(?.%B%F{green}.%F{red})%f%b '
 
+PS1='%B%F{blue}󰣛%f%b  %B%F{magenta}%n%f%b $(dir_icon)  %B%F{red}%~%f%b${vcs_info_msg_0_} %(?.%B%F{green}.%F{red})%f%b '
 #  ┌─┐┬  ┬ ┬┌─┐┬┌┐┌┌─┐
 #  ├─┘│  │ ││ ┬││││└─┐
 #  ┴  ┴─┘└─┘└─┘┴┘└┘└─┘
-source /usr/share/zsh/plugins/fzf-tab-git/fzf-tab.zsh
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+source /home/agannem/.zsh/plugins/fzf-tab-git/fzf-tab.zsh
+source /home/agannem/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source /home/agannem/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /home/agannem/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
@@ -145,6 +146,8 @@ fi
 #  ┌─┐┬  ┬┌─┐┌─┐
 #  ├─┤│  │├─┤└─┐
 #  ┴ ┴┴─┘┴┴ ┴└─┘
+alias ff="clear && sleep 1 && fastfetch"
+
 alias mirrors="sudo reflector --verbose --latest 5 --country 'United States' --age 6 --sort rate --save /etc/pacman.d/mirrorlist"
 alias update="paru -Syu --nocombinedupgrade"
 alias grub-update="sudo grub-mkconfig -o /boot/grub/grub.cfg"
@@ -154,9 +157,23 @@ alias music="ncmpcpp"
 alias cat="bat --theme=base16"
 alias ls='eza --icons=always --color=always -a'
 alias ll='eza --icons=always --color=always -la'
+alias browser='chromium'
+
+
+alias dnfi="sudo dnf install -y"
+alias dnfu="sudo dnf update"
+alias dnfr="sudo dnf remove -y"
+alias dnfs="dnf search"
+
+alias npmdev="npm run dev"
+alias npmi="npm install"
+alias npmr="npm uninstall"
+alias npmig="sudo npm install -g"
+alias npmis="npm install --save"
+alias npmid="npm install --save-dev"
+alias lint="npm run lint"
 
 #  ┌─┐┬ ┬┌┬┐┌─┐  ┌─┐┌┬┐┌─┐┬─┐┌┬┐
 #  ├─┤│ │ │ │ │  └─┐ │ ├─┤├┬┘ │
 #  ┴ ┴└─┘ ┴ └─┘  └─┘ ┴ ┴ ┴┴└─ ┴
-$HOME/.local/bin/colorscript -r
-#disable-fzf-tab
+#$HOME/.local/bin/colorscript -r
