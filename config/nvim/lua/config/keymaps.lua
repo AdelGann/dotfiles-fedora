@@ -1,66 +1,73 @@
 -- Keymaps are automatically loaded on the VeryLazy event
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
-local Util = require("lazyvim.util")
+
 local keymap = vim.keymap
 local opts = { noremap = true, silent = true }
 
+local harpoon = require("harpoon")
+
+-- REQUIRED
+harpoon:setup()
+-- REQUIRED
+
+-- Increment/decrement
 keymap.set("n", "+", "<C-a>")
 keymap.set("n", "-", "<C-x>")
-keymap.set("n", "<C-h>", "<C-w>h", { desc = "Go to left window", remap = true })
-keymap.set("n", "<C-j>", "<C-w>j", { desc = "Go to lower window", remap = true })
-keymap.set("n", "<C-k>", "<C-w>k", { desc = "Go to upper window", remap = true })
-keymap.set("n", "<C-l>", "<C-w>l", { desc = "Go to right window", remap = true })
-keymap.set("i", "<C-h>", "<left>", { desc = "Go to left", remap = true })
-keymap.set("i", "<C-j>", "<down>", { desc = "Go to lower", remap = true })
-keymap.set("i", "<C-k>", "<up>", { desc = "Go to upper", remap = true })
-keymap.set("i", "<C-l>", "<right>", { desc = "Go to right", remap = true })
 
-keymap.set("n", "<c-z>", ":u<CR>", { desc = "Undo", remap = true })
-keymap.set("n", "<c-y>", ":redo<CR>", { desc = "redo", remap = true })
-keymap.set("i", "", "<C-o>:u<CR>", { desc = "Undo", remap = true })
-keymap.set("i", "<80>ü^DY", "<C-o>:redo<CR>", { desc = "redo", remap = true })
+-- Delete a word backwords
+keymap.set("n", "dw", "vb_d")
 
-keymap.set("n", "<C-a>", "ggVG", { desc = "select All", remap = true })
+-- Select all
+keymap.set("n", "<C-a>", "gg<S-v>G")
 
---telescope todo comment
-keymap.set("n", ";t", ":TodoTelescope<cr>", { desc = "Todo Telescope", remap = true, silent = true })
-
---jumplist
+-- Jumlist
 keymap.set("n", "<C-m>", "<C-i>", opts)
 
---tabs
+-- New tab
+keymap.set("n", "te", ":tabedit<CR>", opts)
 keymap.set("n", "<tab>", ":tabnext<CR>", opts)
-keymap.set("n", "<S-tab>", ":tabprev<CR>", opts)
+keymap.set("n", "<s-tab>", ":tabprev<CR>", opts)
 
--- peepsight
-keymap.set("n", "<leader>t", ":Twilight<CR>", { desc = "twilight toggle" })
+keymap.set("n", "bn", ":bnext<CR>", opts)
+keymap.set("n", "bp", ":bprev<CR>", opts)
+keymap.set("n", "<leader>bd", ":bd<CR>", opts)
+keymap.set("n", "<leader>tc", ":tabclose<CR>", opts)
 
--- atac API
--- keymap.set("n", "<leader>aa", ":Atac<CR>", { desc = "Atac" })
+-- Delete buffer wipeout
+keymap.set("n", "<Leader>w", ":bw<CR>", opts)
 
--- clear buffer
-keymap.set("n", "<leader>bq", '<Esc>:%bdelete|edit #|normal`"<Return>', { desc = "Clear buffer" })
+-- harpoon tabs
+keymap.set("n", "<leader>a", function()
+  harpoon:list():add()
+end)
+keymap.set("n", "<C-S-P>", function()
+  harpoon:list():prev()
+end)
+keymap.set("n", "<C-S-N>", function()
+  harpoon:list():next()
+end)
+keymap.set("n", "<C-e>", function()
+  harpoon.ui:toggle_quick_menu(harpoon:list())
+end)
 
--- Redefine Ctrl+s to save with the custom function
-vim.api.nvim_set_keymap("n", "<C-s>", ":lua SaveFile()<CR>", { noremap = true, silent = true })
+-- Split window
+keymap.set("n", "ss", ":split<Return>", opts)
 
--- Custom save function
-function SaveFile()
-  -- Check if a buffer with a file is open
-  if vim.fn.empty(vim.fn.expand("%:t")) == 1 then
-    vim.notify("No file to save", vim.log.levels.WARN)
-    return
-  end
+keymap.set("n", "sv", ":vsplit<Return>", opts)
 
-  local filename = vim.fn.expand("%:t") -- Get only the filename
-  local success, err = pcall(function()
-    vim.cmd("silent! write") -- Try to save the file without showing the default message
-  end)
+-- Move window
+keymap.set("n", "s<left>", "<C-w>h", opts)
+keymap.set("n", "s<up>", "<C-w>k", opts)
+keymap.set("n", "s<down>", "<C-w>j", opts)
+keymap.set("n", "s<right>", "<C-w>l", opts)
 
-  if success then
-    vim.notify(filename .. " Saved!") -- Show only the custom message if successful
-  else
-    vim.notify("Error: " .. err, vim.log.levels.ERROR) -- Show the error message if it fails
-  end
-end
+-- Resize window
+keymap.set("n", "<C-w><right>", "<C-w><")
+keymap.set("n", "<C-w><left>", "<C-w>>")
+keymap.set("n", "<C-w><up>", "C-w>+")
+keymap.set("n", "<C-w><up>", "C-w>-")
+
+--  Tree
+keymap.set("n", "<leader>e", "<cmd>Neotree toggle<cr>", opts)
+keymap.set("n", "<leader>E", "<cmd>Neotree focus<cr>", opts)
